@@ -10,22 +10,8 @@ fi
 
 TAG="$1"
 
-JAR_PATH="target/uberjar/metabase.jar"
-mkdir -p "$(dirname "$JAR_PATH")"
-if [ "$#" -gt 1 ]; then
-  cp "$2" "$JAR_PATH"
-else
-  curl --fail -v "http://downloads.metabase.com/$TAG/metabase.jar" -o "$JAR_PATH"
-fi
-
-# generate a README
-cat > README.md <<EOF
-[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/metabase/metabase-deploy/tree/$TAG)
-EOF
-
 # add, commit, tag, and push
-git add .
-git commit -m "Deploy $TAG"
+git commit --allow-empty -m  "Deploy $TAG"
 git tag "$TAG"
 git push
 git push --tags origin master
