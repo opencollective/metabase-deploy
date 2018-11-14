@@ -92,33 +92,21 @@ fi
 
 if [ -n "$HEROKU" ]; then
     echo "  -> Heroku detected"
-    if [ `ulimit -u` = 256 ]; then
-        # free, hobby or 1x dyno, it defaults to giving us 300m but that still ends
-        # up going over the 512MB limit for the dyno.
-        echo "    => 1x dyno"
-        JAVA_OPTS="$JAVA_OPTS -Xmx248m"                    # This seems to be the right amount that prevents the dyno from going over the quota
-    fi
-    if [ `ulimit -u` = 512 ]; then
-        # 2x dyno, it defaults to giving us 800m but that still ends
-        # up going over the 1024MB limit for the dyno.
-        echo "    => 2x dyno"
-        JAVA_OPTS="$JAVA_OPTS -Xmx496m"                    # This seems to be the right amount that prevents the dyno from going over the quota
-    fi
-
-    # Set a few other additional options to minimize memory usage as well.
-    JAVA_OPTS="$JAVA_OPTS -XX:-UseGCOverheadLimit"         # Disable limit to amount of time spent in GC. Better slow than not working at all
-    JAVA_OPTS="$JAVA_OPTS -XX:+UseConcMarkSweepGC"         # ConcMarkSweepGC seems to cause less OOM issues in my testing on low-mem Heroku envs
-    JAVA_OPTS="$JAVA_OPTS -XX:+CMSClassUnloadingEnabled"   # Not 100% sure this does anything in Java 8 but if it does, we want to enable it
-    JAVA_OPTS="$JAVA_OPTS -XX:+UseCompressedOops"          # Use 32-bit pointers. Reduces memory usage and GC events
-    JAVA_OPTS="$JAVA_OPTS -XX:+UseCompressedClassPointers" # Same as above. See also http://blog.leneghan.com/2012/03/reducing-java-memory-usage-and-garbage.html
+    # Set a few other options to minimize memory usage as much as possible.
+    JAVA_OPTS+=" -XX:+UnlockExperimentalVMOptions"
+    JAVA_OPTS+=" -XX:+UseCGroupMemoryLimitForHeap" # Tell the JVM to use container info to set heap limit -- see https://devcenter.heroku.com/articles/java-memory-issues#configuring-java-to-run-in-a-container
+    JAVA_OPTS+=" -XX:-UseGCOverheadLimit"          # Disable limit to amount of time spent in GC. Better slow than not working at all
+    JAVA_OPTS+=" -XX:+UseCompressedOops"           # Use 32-bit pointers. Reduces memory usage
+    JAVA_OPTS+=" -XX:+UseCompressedClassPointers"  # Same as above. See also http://blog.leneghan.com/2012/03/reducing-java-memory-usage-and-garbage.html
+    JAVA_OPTS+=" -XX:MaxMetaspaceSize=130m"        # Set a hard limit for the Metaspace (classes and other stuff), don't let it get any bigger
+    JAVA_OPTS+=" -Xverify:none"                    # Skip bytecode verification, the Heroku buildpack comes from us so it's already verified. Speed up launch slightly
+    JAVA_OPTS+=" -XX:+UseG1GC"                     # G1GC seems to use slightly less memory in my testing...
+    JAVA_OPTS+=" -XX:+UseStringDeduplication"      # Especially when used in combination with string deduplication
 fi
 
 # Other Java options
-JAVA_OPTS="$JAVA_OPTS -XX:+IgnoreUnrecognizedVMOptions" # Don't barf if we see an option we don't understand (e.g. Java 9 option on Java 7/8)
-JAVA_OPTS="$JAVA_OPTS -Djava.awt.headless=true"         # don't try to start AWT. Not sure this does anything but better safe than wasting memory
-JAVA_OPTS="$JAVA_OPTS -Dfile.encoding=UTF-8"            # Use UTF-8
-JAVA_OPTS="$JAVA_OPTS --add-modules=java.xml.bind"      # Enable access to java.xml.bind module (Java 9)
-
-echo "Using these JAVA_OPTS: ${JAVA_OPTS}"
+JAVA_OPTS+=" -server"                  # Run in server mode. This is the default for 64-bit JVM
+JAVA_OPTS+=" -Djava.awt.headless=true" # don't try to start AWT. Not sure this does anything but better safe than wasting memory
+JAVA_OPTS+=" -Dfile.encoding=UTF-8"    # Use UTF-8
 
 exec java $JAVA_OPTS -jar ./target/uberjar/metabase.jar
