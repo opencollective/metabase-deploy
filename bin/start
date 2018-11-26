@@ -98,7 +98,6 @@ if [ -n "$HEROKU" ]; then
     JAVA_OPTS+=" -XX:-UseGCOverheadLimit"          # Disable limit to amount of time spent in GC. Better slow than not working at all
     JAVA_OPTS+=" -XX:+UseCompressedOops"           # Use 32-bit pointers. Reduces memory usage
     JAVA_OPTS+=" -XX:+UseCompressedClassPointers"  # Same as above. See also http://blog.leneghan.com/2012/03/reducing-java-memory-usage-and-garbage.html
-    JAVA_OPTS+=" -XX:MaxMetaspaceSize=130m"        # Set a hard limit for the Metaspace (classes and other stuff), don't let it get any bigger
     JAVA_OPTS+=" -Xverify:none"                    # Skip bytecode verification, the Heroku buildpack comes from us so it's already verified. Speed up launch slightly
     JAVA_OPTS+=" -XX:+UseG1GC"                     # G1GC seems to use slightly less memory in my testing...
     JAVA_OPTS+=" -XX:+UseStringDeduplication"      # Especially when used in combination with string deduplication
