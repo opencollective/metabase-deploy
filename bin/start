@@ -108,4 +108,10 @@ JAVA_OPTS+=" -server"                  # Run in server mode. This is the default
 JAVA_OPTS+=" -Djava.awt.headless=true" # don't try to start AWT. Not sure this does anything but better safe than wasting memory
 JAVA_OPTS+=" -Dfile.encoding=UTF-8"    # Use UTF-8
 
+# Set timezone using the JAVA_TIMEZONE variable if present
+if [ "$JAVA_TIMEZONE"]; then
+    echo "  -> Timezone setting detected: $JAVA_TIMEZONE"
+    JAVA_OPTS+=" -Duser.timezone=$JAVA_TIMEZONE"
+fi
+
 exec java $JAVA_OPTS -jar ./target/uberjar/metabase.jar
